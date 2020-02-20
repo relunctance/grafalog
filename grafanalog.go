@@ -13,7 +13,10 @@ type GrafanaLog struct {
 	ReadSize int
 }
 
-func NewGrafanaLog(f io.Reader) *GrafanaLog {
+func New(f io.Reader) *GrafanaLog {
+	return newGrafanaLog(f)
+}
+func newGrafanaLog(f io.Reader) *GrafanaLog {
 	g := &GrafanaLog{
 		ReadSize: 10,
 		fm:       &DefaultFormat{},
