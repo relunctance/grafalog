@@ -1,4 +1,4 @@
-module grafanalog
+module github/relunctance/grafanalog
 
 go 1.13
 
