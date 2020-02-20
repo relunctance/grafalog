@@ -30,9 +30,10 @@ func main() {
 
 # Example 示例
 
-* [日志导入Mysql示例]()
+* [日志导入Mysql示例](https://github.com/relunctance/grafalog/blob/master/example/mysql/main.go)
+* [日志输出到终端示例](https://github.com/relunctance/grafalog/blob/master/example/default/main.go)
 
 # Contribute
 
-* 贡献请提交PR
+* 贡献欢迎提交PR
 
