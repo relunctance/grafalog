@@ -1,7 +1,10 @@
-# grafalog
-grafana 导入日志小工具
+# Grafalog 导入日志小工具
+* 支持日志推送到Mysql
+* 实现接口可支持自定义推送数据源 , 比如Zabbix
 
-# start
+
+
+# Start
 
 * 默认输出到终端
 
