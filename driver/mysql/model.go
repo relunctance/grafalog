@@ -20,6 +20,9 @@
 package mysql
 
 import (
+	"bytes"
+	"fmt"
+
 	"github.com/relunctance/grafalog"
 )
 
@@ -38,10 +41,75 @@ func (m *Model) Close() {
 	m.m.Close()
 }
 
-func (m *Model) Push(vals []grafalog.Dataer) error {
-	// TODO 支持批量写入更好
-	for _, val := range vals {
-		m.m.DB.Create(val) //  利用gorm写入的方法, 直接写入数据库
+// buildInsertSql 创建批量插入语句
+// isUpdate =true:
+//		当包含的列存在唯一索引的情况下会同时进行更新,不会出现重复的数据
+//      如果没有唯一索引的情况下则批量写入
+// isUpdate =false:
+//      默认情况下批量写入
+func (m *Model) insertSqlBuild(item grafalog.Dataer, isUpdate bool) (*bytes.Buffer, string) {
+	s := m.m.DB.NewScope(item)
+	fields := s.GetStructFields()
+	buf := bytes.NewBufferString("INSERT INTO ")
+	buf.WriteString(s.QuotedTableName())
+	buf.WriteString("(")
+	var duplicateSql string = " ON DUPLICATE KEY UPDATE "
+	for i, field := range fields {
+		fname := field.Tag.Get("gorm")
+		buf.WriteString("`" + fname + "`")
+		if isUpdate {
+			duplicateSql += "`" + fname + "` = VALUES(`" + fname + "`)"
+		}
+		if i != len(fields)-1 {
+			if isUpdate {
+				duplicateSql += ","
+			}
+			buf.WriteString(",")
+		}
 	}
-	return nil
+	buf.WriteString(") VALUES")
+	return buf, duplicateSql
+}
+
+func (m *Model) buildInsertSql(vals []grafalog.Dataer, isUpdate bool) *bytes.Buffer {
+	if len(vals) == 0 {
+		return nil
+	}
+	buf, duplicateSql := m.insertSqlBuild(vals[0], isUpdate)
+	for j, val := range vals {
+		buf.WriteString("(")
+		s := m.m.DB.NewScope(val)
+		fs := s.Fields()
+		for i, field := range fs {
+			v := m.Addslashes(field.Field.Interface())
+			buf.WriteString("'" + v + "'")
+			if i != len(fs)-1 {
+				buf.WriteString(",")
+			}
+		}
+		buf.WriteString(")")
+		if j != len(vals)-1 {
+			buf.WriteString(",")
+		}
+	}
+	if isUpdate {
+		buf.WriteString(duplicateSql)
+	}
+	return buf
+}
+
+func (m *Model) Addslashes(v interface{}) string {
+	return fmt.Sprintf("%v", v)
+}
+
+// implement grafalog.DBer
+func (m *Model) Push(vals []grafalog.Dataer) error {
+	return m.BatchInsert(vals, true)
+}
+
+func (m *Model) BatchInsert(vals []grafalog.Dataer, isUpdate bool) error {
+	if len(vals) == 0 {
+		return nil
+	}
+	return m.m.DB.Exec(m.buildInsertSql(vals, isUpdate).String()).Error
 }
