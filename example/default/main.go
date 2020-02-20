@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	f, err := os.Open("test.logs")
+	f, err := os.Open("../mysql/test.logs")
 	if err != nil {
 		panic("open test.logs is faild")
 	}
