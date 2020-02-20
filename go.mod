@@ -1,3 +1,3 @@
-module github.com/relunctance/grafanalog
+module github.com/relunctance/grafalog
 
 go 1.13
