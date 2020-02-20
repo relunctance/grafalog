@@ -84,6 +84,7 @@ func main() {
 		"dbname":   "test",
 		"charset":  "utf8",
 	})
+	m.M.DB.LogMode(true)
 	defer m.Close()
 	if err != nil {
 		panic(err)

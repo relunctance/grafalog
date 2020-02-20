@@ -28,17 +28,17 @@ import (
 
 // the example you can see:  example/mysql/main.go
 type Model struct {
-	m *Morm
+	M *Morm
 }
 
 func NewModel(dbconfig map[string]string) (*Model, error) {
 	m, err := NewMorm(dbconfig)
 	m.DB, err = m.NewDb()
-	return &Model{m: m}, err
+	return &Model{M: m}, err
 }
 
 func (m *Model) Close() {
-	m.m.Close()
+	m.M.Close()
 }
 
 // buildInsertSql 创建批量插入语句
@@ -48,7 +48,7 @@ func (m *Model) Close() {
 // isUpdate =false:
 //      默认情况下批量写入
 func (m *Model) insertSqlBuild(item grafalog.Dataer, isUpdate bool) (*bytes.Buffer, string) {
-	s := m.m.DB.NewScope(item)
+	s := m.M.DB.NewScope(item)
 	fields := s.GetStructFields()
 	buf := bytes.NewBufferString("INSERT INTO ")
 	buf.WriteString(s.QuotedTableName())
@@ -78,7 +78,7 @@ func (m *Model) buildInsertSql(vals []grafalog.Dataer, isUpdate bool) *bytes.Buf
 	buf, duplicateSql := m.insertSqlBuild(vals[0], isUpdate)
 	for j, val := range vals {
 		buf.WriteString("(")
-		s := m.m.DB.NewScope(val)
+		s := m.M.DB.NewScope(val)
 		fs := s.Fields()
 		for i, field := range fs {
 			v := m.Addslashes(field.Field.Interface())
@@ -111,5 +111,5 @@ func (m *Model) BatchInsert(vals []grafalog.Dataer, isUpdate bool) error {
 	if len(vals) == 0 {
 		return nil
 	}
-	return m.m.DB.Exec(m.buildInsertSql(vals, isUpdate).String()).Error
+	return m.M.DB.Exec(m.buildInsertSql(vals, isUpdate).String()).Error
 }
