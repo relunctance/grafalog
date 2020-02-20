@@ -1,74 +1,71 @@
 package grafanalog
 
 import (
-	"fmt"
-	"os"
-
-	"github.com/relunctance/goutils/fc"
+	"bufio"
+	"io"
 )
 
 type GrafanaLog struct {
-	Path string
-
+	f  io.Reader
+	fm Formater
+	db DBer
 	// 每次多去多少条 , -1 是所有
 	ReadSize int
 }
 
-func NewGrafanaLog(path string) *GrafanaLog {
+func NewGrafanaLog(f io.Reader) *GrafanaLog {
 	g := &GrafanaLog{
 		ReadSize: 10,
-		Path:     path,
+		fm:       &DefaultFormat{},
+		db:       &DefaultDb{},
 	}
 	return g
 }
 
+func (g *GrafanaLog) SetReadSize(v int) {
+	g.ReadSize = v
+}
+
+func (g *GrafanaLog) RegisterFormater(fm Formater) {
+	g.fm = fm
+}
+
+func (g *GrafanaLog) RegisterDBer(db DBer) {
+	g.db = db
+}
+
 // 数据库地址
 type DBer interface {
-	Conn() (Conner, error)
+	Push(Dataer) error
+	PushMulti([]Dataer) error
 }
 
 // 数据存储单元
 type Dataer interface {
 	Item() []byte
-	Items() [][]byte
 }
-
-/*
-// 支持实现推送的
-type Conner interface {
-	Push(Dataer) error
-}
-*/
 
 // 解析器
 type Formater interface {
-	Parse([]byte) Dataer
+	Parse([]byte) (Dataer, error)
 }
 
-func ParseData(line []byte, fm Formater) Dataer {
-	return fm.Parse(line)
-}
-
-func (g *GrafanaLog) Run(d DBer) error {
-	_, err := g.openfile(g.Path)
-	if err != nil {
-		return err
+func (g *GrafanaLog) Run() error {
+	scan := bufio.NewScanner(g.f)
+	items := make([]Dataer, 0, g.ReadSize)
+	for scan.Scan() {
+		data, err := g.fm.Parse(scan.Bytes())
+		if err != nil { // 扫描日志失败
+			return err
+		}
+		if len(items) == g.ReadSize {
+			items = make([]Dataer, 0, g.ReadSize)
+		}
+		items = append(items, data)
+		err = g.db.PushMulti(items)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
-	/*
-		db, err := d.Conn()
-
-		//if err := db.Push(); err != nil {
-		//return err
-		//}
-		return nil
-	*/
-
-}
-
-func (g *GrafanaLog) openfile(path string) (*os.File, error) {
-	if !fc.IsExist(path) {
-		return nil, fmt.Errorf("not exists file : [%s]", path)
-	}
-	return os.Open(path)
 }
