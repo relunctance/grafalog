@@ -1,4 +1,4 @@
-package grafanalog
+package grafalog
 
 import (
 	"bufio"
