@@ -10,7 +10,7 @@ type GrafanaLog struct {
 	f  io.Reader
 	fm Formater
 	db DBer
-	// 每次多去多少条 , -1 是所有
+	// 每次多取多少条
 	ReadSize int
 }
 
@@ -40,6 +40,9 @@ func (g *GrafanaLog) RegisterDBer(db DBer) {
 }
 
 func (g *GrafanaLog) check() error {
+	if g.ReadSize == 0 {
+		return fmt.Errorf("g.ReadSize should be > 0")
+	}
 	if g.f == nil {
 		return fmt.Errorf("io.Reader is nil")
 	}
@@ -60,11 +63,11 @@ func (g *GrafanaLog) Run() error {
 	items := make([]Dataer, 0, g.ReadSize)
 	for scan.Scan() {
 		data, err := g.fm.Parse(scan.Bytes())
-		if err != nil { // 扫描日志失败
+		if err != nil { // 如果解析日志失败会中断执行, 请保证日志格式统一
 			return err
 		}
 		if len(items) == g.ReadSize {
-			err = g.db.Push(items)
+			err = g.db.Push(items) // 如果推送数据失败也会中断执行
 			if err != nil {
 				return err
 			}
