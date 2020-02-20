@@ -4,20 +4,16 @@ import "fmt"
 
 type DefaultDb struct{}
 
-func (db *DefaultDb) Push(val Dataer) error {
-	return db.outputStdout(val)
-}
-
 func (db *DefaultDb) outputStdout(val Dataer) error {
 	if val == nil {
 		return fmt.Errorf("val:Dataer is nil")
 	}
-	fmt.Println(val.Item())
+	fmt.Println(string(val.Item()))
 	return nil
 
 }
 
-func (db *DefaultDb) PushMulti(vals []Dataer) error {
+func (db *DefaultDb) Push(vals []Dataer) error {
 	for _, val := range vals {
 		err := db.outputStdout(val)
 		if err != nil {

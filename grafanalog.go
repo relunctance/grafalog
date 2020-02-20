@@ -2,6 +2,7 @@ package grafalog
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 )
 
@@ -19,6 +20,7 @@ func New(f io.Reader) *GrafanaLog {
 func newGrafanaLog(f io.Reader) *GrafanaLog {
 	g := &GrafanaLog{
 		ReadSize: 10,
+		f:        f,
 		fm:       &DefaultFormat{},
 		db:       &DefaultDb{},
 	}
@@ -37,23 +39,23 @@ func (g *GrafanaLog) RegisterDBer(db DBer) {
 	g.db = db
 }
 
-// 数据库地址
-type DBer interface {
-	Push(Dataer) error
-	PushMulti([]Dataer) error
-}
-
-// 数据存储单元
-type Dataer interface {
-	Item() []byte
-}
-
-// 解析器
-type Formater interface {
-	Parse([]byte) (Dataer, error)
+func (g *GrafanaLog) check() error {
+	if g.f == nil {
+		return fmt.Errorf("io.Reader is nil")
+	}
+	if g.db == nil {
+		return fmt.Errorf("g.db is nil , please run grafalog.RegisterDBer(DBer)")
+	}
+	if g.fm == nil {
+		return fmt.Errorf("g.fm is nil , you should run grafalog.RegisterFormater(Formater)")
+	}
+	return nil
 }
 
 func (g *GrafanaLog) Run() error {
+	if err := g.check(); err != nil {
+		return err
+	}
 	scan := bufio.NewScanner(g.f)
 	items := make([]Dataer, 0, g.ReadSize)
 	for scan.Scan() {
@@ -62,13 +64,16 @@ func (g *GrafanaLog) Run() error {
 			return err
 		}
 		if len(items) == g.ReadSize {
+			err = g.db.Push(items)
+			if err != nil {
+				return err
+			}
 			items = make([]Dataer, 0, g.ReadSize)
 		}
 		items = append(items, data)
-		err = g.db.PushMulti(items)
-		if err != nil {
-			return err
-		}
+	}
+	if len(items) > 0 {
+		g.db.Push(items)
 	}
 	return nil
 }
