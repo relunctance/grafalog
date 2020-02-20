@@ -25,6 +25,10 @@ import (
 	"io"
 )
 
+const (
+	DefaultReadSize = 20
+)
+
 type GrafanaLog struct {
 	f  io.Reader
 	fm Formater
@@ -38,7 +42,7 @@ func New(f io.Reader) *GrafanaLog {
 }
 func newGrafanaLog(f io.Reader) *GrafanaLog {
 	g := &GrafanaLog{
-		ReadSize: 10,
+		ReadSize: DefaultReadSize,
 		f:        f,
 		fm:       &DefaultFormat{},
 		db:       &DefaultDb{},
