@@ -56,6 +56,11 @@ type Logtest struct {
 	Msg      string `gorm:"msg"`
 }
 
+// implete gorm.tabler
+func (d *Logtest) TableName() string {
+	return "logtests"
+}
+
 func (d *Logtest) Item() []byte {
 	s := fmt.Sprintf("ukey:%s, cost_time:%d, api:%s, value:%s, msg:%s, ctime:%s",
 		d.Ukey,
