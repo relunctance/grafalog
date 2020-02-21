@@ -20,10 +20,8 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"os"
-	"strconv"
 
 	"github.com/relunctance/grafalog"
 	"github.com/relunctance/grafalog/driver/mysql"
@@ -36,14 +34,15 @@ type Formate struct {
 }
 
 func (f *Formate) Parse(line []byte) (grafalog.Dataer, error) {
-	vals := bytes.Split(line, []byte("\t"))
 	d := &Logtest{}
-	d.CostTime, _ = strconv.Atoi(string(vals[0]))
-	d.Ukey = string(vals[1])
-	d.Api = string(vals[2])
-	d.Value = string(vals[3])
-	d.Ctime = string(vals[4])
-	d.Msg = string(vals[5])
+	fmt.Sscanf(string(line), "%d\t%s\t%s\t%s\t%s\t%s\n",
+		&d.CostTime,
+		&d.Ukey,
+		&d.Api,
+		&d.Value,
+		&d.Ctime,
+		&d.Msg,
+	)
 	return d, nil
 }
 
