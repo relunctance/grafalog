@@ -1,3 +1,4 @@
+[![release](https://img.shields.io/github/release/relunctance/grafalog?style=flat-square)](https://github.com/relunctance/grafalog/releases)
 [![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/relunctance/grafalog?tab=doc)
 
 
