@@ -1,3 +1,6 @@
+[![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/relunctance/grafalog?tab=doc)
+
+
 # Grafalog 导入日志小工具
 * 支持日志推送到Mysql
 * 支持自定义解析日志格式
