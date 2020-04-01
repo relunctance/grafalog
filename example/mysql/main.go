@@ -21,7 +21,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/relunctance/grafalog"
 	"github.com/relunctance/grafalog/driver/mysql"
@@ -75,11 +74,6 @@ func (d *Logtest) Item() []byte {
 }
 
 func main() {
-	f, err := os.Open("test.logs")
-	if err != nil {
-		panic("open test.logs is faild")
-	}
-	defer f.Close()
 	m, err := mysql.NewModel(map[string]string{
 		"username": "root",
 		"password": "123456QWER",
@@ -93,7 +87,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	g := grafalog.New(f)
+	g := grafalog.New("./test.logs")
 	g.SetReadSize(20) // set push size
 	g.RegisterDBer(m)
 	g.RegisterFormater(&Formate{})

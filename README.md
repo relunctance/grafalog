@@ -8,6 +8,10 @@
 * 实现接口可支持自定义推送数据源 , 比如Zabbix
 
 
+# Install 
+```
+go get -u -v github.com/relunctance/grafalog
+```
 
 # Start
 
@@ -23,12 +27,7 @@ import (
 )
 
 func main() {
-    f, err := os.Open("test.logs")
-    if err != nil {
-        panic("open test.logs is faild")
-    }
-    defer f.Close()
-    g := grafalog.New(f)
+    g := grafalog.New("./test.logs")
     err = g.Run() // default output os.Stdout
     if err != nil {
         panic(err)
