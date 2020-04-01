@@ -114,7 +114,7 @@ func (g *GrafanaLog) TailLine() error {
 	if err != nil {
 		return err
 	}
-	// 每次满ChunkSize 或者 满3s 都会开始写数据
+	// 每次满ChunkSize 或者 满flushTick 都会开始写数据
 	for line := range t.Lines { // channel 阻塞兼容日志中新增内容
 		data, err := g.fm.Parse([]byte(line.Text))
 		if err != nil {
