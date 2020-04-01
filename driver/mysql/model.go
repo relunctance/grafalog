@@ -71,6 +71,7 @@ func (m *Model) insertSqlBuild(item grafalog.Dataer, isUpdate bool) (*bytes.Buff
 	return buf, duplicateSql
 }
 
+// 如果grafalog.Dataer 实现了 TableName() string 会自动更换表名
 func (m *Model) buildInsertSql(vals []grafalog.Dataer, isUpdate bool) *bytes.Buffer {
 	if len(vals) == 0 {
 		return nil

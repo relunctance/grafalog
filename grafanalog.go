@@ -82,6 +82,11 @@ func (g *GrafanaLog) Run() error {
 	if err := g.check(); err != nil {
 		return err
 	}
+	return g.readAll()
+}
+
+// 直接一次性读取所有的内容
+func (g *GrafanaLog) readAll() (err error) {
 	scan := bufio.NewScanner(g.f)
 	items := make([]Dataer, 0, g.ReadSize)
 	for scan.Scan() {
