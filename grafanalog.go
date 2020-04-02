@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/gogf/gf/os/gfile"
@@ -50,6 +51,9 @@ type GrafanaLog struct {
 
 	// 临时存储需要刷盘数据
 	flushdata []Dataer
+
+	debug bool
+	mx    sync.Mutex
 }
 
 func New(filepath string) *GrafanaLog {
@@ -70,6 +74,16 @@ func newGrafanaLog(f string) *GrafanaLog {
 // 设置定期刷数据时间, 单位: 秒
 func (g *GrafanaLog) SetFlushTick(v int) {
 	g.flushTick = v
+}
+
+func (g *GrafanaLog) SetDebug(v bool) {
+	g.debug = v
+}
+
+func (g *GrafanaLog) logPrintf(format string, v ...interface{}) {
+	if g.debug {
+		log.Printf(format, v...)
+	}
 }
 
 func (g *GrafanaLog) SetReadSize(v int) {
@@ -130,37 +144,6 @@ func (g *GrafanaLog) TailLine() error {
 	return nil
 }
 
-/*
-// 直接一次性读取所有的内容
-func (g *GrafanaLog) readAll() (err error) {
-	f, err := g.openFile()
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	scan := bufio.NewScanner(f)
-	items := make([]Dataer, 0, g.ChunkSize)
-	for scan.Scan() {
-		data, err := g.fm.Parse(scan.Bytes())
-		if err != nil { // 如果解析日志失败会中断执行, 请保证日志格式统一
-			return err
-		}
-		if len(items) == g.ChunkSize {
-			err = g.db.Push(items) // 如果推送数据失败也会中断执行
-			if err != nil {
-				return err
-			}
-			items = make([]Dataer, 0, g.ChunkSize)
-		}
-		items = append(items, data)
-	}
-	if len(items) > 0 {
-		g.db.Push(items)
-	}
-	return nil
-}
-*/
-
 // 按照大小刷
 func (g *GrafanaLog) flushWithFullSize() error {
 	if len(g.flushdata) == g.ChunkSize {
@@ -171,10 +154,12 @@ func (g *GrafanaLog) flushWithFullSize() error {
 
 // 按照时间刷
 func (g *GrafanaLog) flushWithFinishTime() error {
-	if err := g.pushItems(); err != nil {
+	err := g.pushItems()
+	if err != nil {
 		log.Fatalf("time ticker push data faild err: %v", err)
 		return err
 	}
+	g.logPrintf("wait data , timetick[%d] second\n", g.flushTick)
 	return nil
 }
 
@@ -182,8 +167,15 @@ func (g *GrafanaLog) pushItems() (err error) {
 	if len(g.flushdata) == 0 {
 		return
 	}
+	g.mx.Lock()
+	defer g.mx.Lock()
 	err = g.db.Push(g.flushdata)
-	g.flushdata = make([]Dataer, 0, g.ChunkSize)
+	if err == nil {
+		g.logPrintf("success push data size: [%d]\n", len(g.flushdata))
+	}
+
+	// 写入失败情况下会丢弃掉对应的数据, 再次其他日志
+	g.flushdata = make([]Dataer, 0, g.ChunkSize) // 重置
 	return
 }
 
@@ -201,6 +193,8 @@ func (g *GrafanaLog) startPusher() {
 
 // 每次满ChunkSize 或者 满FlushTime(秒) 都会开始写数据
 func (g *GrafanaLog) addData(data Dataer) error {
+	g.mx.Lock()
+	defer g.mx.Unlock()
 	g.flushdata = append(g.flushdata, data)
 	return g.flushWithFullSize()
 }
