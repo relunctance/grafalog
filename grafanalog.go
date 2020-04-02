@@ -146,15 +146,15 @@ func (g *GrafanaLog) TailLine() error {
 
 // 按照大小刷
 func (g *GrafanaLog) flushWithFullSize() error {
-	if len(g.flushdata) == g.ChunkSize {
-		return g.pushItems()
+	if len(g.flushdata) >= g.ChunkSize {
+		return g.pushItems("from=sizeflush")
 	}
 	return nil
 }
 
 // 按照时间刷
 func (g *GrafanaLog) flushWithFinishTime() error {
-	err := g.pushItems()
+	err := g.pushItems("from=timetickflush")
 	if err != nil {
 		log.Fatalf("time ticker push data faild err: %v", err)
 		return err
@@ -163,19 +163,28 @@ func (g *GrafanaLog) flushWithFinishTime() error {
 	return nil
 }
 
-func (g *GrafanaLog) pushItems() (err error) {
+func (g *GrafanaLog) copyData() []Dataer {
+	tmpdata := make([]Dataer, len(g.flushdata))
+	copy(tmpdata, g.flushdata)
+	// 写入失败情况下会丢弃掉对应的数据, 再次其他日志
+	g.flushdata = make([]Dataer, 0, g.ChunkSize) // 重置
+	return tmpdata
+}
+
+func (g *GrafanaLog) pushItems(fr string) (err error) {
 	if len(g.flushdata) == 0 {
 		return
 	}
-	g.mx.Lock()
-	defer g.mx.Lock()
-	err = g.db.Push(g.flushdata)
-	if err == nil {
-		g.logPrintf("success push data size: [%d]\n", len(g.flushdata))
-	}
+	// 后台去慢慢写入 , 不阻塞下次任务
+	go func(fr string) {
+		data := g.copyData()
+		g.logPrintf("from:[%s] , length:%d \n", fr, len(data))
+		err = g.db.Push(data) // 有可能写入数据库超时, 网络超时等异常情况
+		if err == nil {
+			g.logPrintf("success push data size: [%d]\n", len(data))
+		}
+	}(fr)
 
-	// 写入失败情况下会丢弃掉对应的数据, 再次其他日志
-	g.flushdata = make([]Dataer, 0, g.ChunkSize) // 重置
 	return
 }
 
