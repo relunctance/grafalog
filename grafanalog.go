@@ -164,6 +164,8 @@ func (g *GrafanaLog) flushWithFinishTime() error {
 }
 
 func (g *GrafanaLog) copyData() []Dataer {
+	g.mx.Lock()
+	defer g.mx.Unlock()
 	tmpdata := make([]Dataer, len(g.flushdata))
 	copy(tmpdata, g.flushdata)
 	// 写入失败情况下会丢弃掉对应的数据, 再次其他日志
